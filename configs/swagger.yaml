@@ -1,0 +1,49 @@
+swagger: "2.0"
+
+info:
+  title: Swagger Template
+  description: A Template API
+  version: "0.1"
+
+paths:
+  /connect_four:
+    post:
+      operationId: app.flask.routes.process_connect_four
+      summary: Endpoint to play connect four.
+      parameters:
+      - description: Example payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/ConnectFourActionsPayload'
+      produces:
+      - application/json
+      responses:
+        201:
+          description: OK
+          schema:
+            $ref: '#/definitions/ConnectFourResponse'
+definitions:
+  ConnectFourActionsPayload:
+    type: object
+    properties:
+      actions:
+        description: sequence of actions 
+        type: array
+        items:
+          - type: integer
+          - minimum: 0
+          - maximum: 6
+    required:
+    - actions
+  ConnectFourResponse:
+      type: object
+      properties:
+        move:
+          description: Move to be played 
+          type: integer
+          minimum: 0 
+          maximum: 6
+      required:
+      - image
