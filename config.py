@@ -10,7 +10,7 @@ GPU_MEMORY_LIMIT = int(os.environ.get("GPU_MEMORY_LIMIT", 2048))
 
 NN = NeuralXGBoost(use_v=False)
 
-NN.load(xgb_folder='assets/data/xgb', nn_folder='assets/data', nn_filename='daily_donkey/save48.h5')
+NN.load(xgb_folder='./assets/data/xgb', nn_folder='./assets/data', nn_filename='daily_donkey/save48.h5')
 
 cpuct = 1
 mcts = MCTS(cpuct)
