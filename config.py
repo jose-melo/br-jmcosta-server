@@ -23,5 +23,3 @@ def train_mcts():
         if boardToPredict != None:
             pi, v = NN.predictBatch({0 : boardToPredict}) 
             mcts.backpropagation(pi[0],v[0])         
-
-    print('teste')
