@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def process_connect_four(payload: dict) -> dict:
     print('payload: ', payload)
 
-    move = get_move(payload['actions'], 100) 
+    move = get_move(payload['actions']) 
 
     print('move: ', move)
 

@@ -1,8 +1,10 @@
 import config
+from config import train_mcts
 import connexion
 from app.flask import error_handler
 from flask_cors import CORS
 from swagger_ui_bundle import swagger_ui_path
+
 
 
 def create_app():
@@ -14,6 +16,9 @@ def create_app():
     CORS(app.app)
     app.add_api("swagger.yaml", strict_validation=True, validate_responses=True)
     error_handler.register_error_handlers(app)
+    
+    config.train_mcts()
+
     return app
 
 
