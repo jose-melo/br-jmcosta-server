@@ -1,5 +1,5 @@
 import config
-from config import train_mcts
+#from config import train_mcts
 import connexion
 from app.flask import error_handler
 from flask_cors import CORS
@@ -17,7 +17,7 @@ def create_app():
     app.add_api("swagger.yaml", strict_validation=True, validate_responses=True)
     error_handler.register_error_handlers(app)
     
-    config.train_mcts()
+    #config.train_mcts()
 
     return app
 
