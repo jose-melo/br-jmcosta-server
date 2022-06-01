@@ -3,35 +3,19 @@ import numpy as np
 import abc
 import joblib
 
-import tensorflow as tf
-from tensorflow.keras.layers import Input, Dense, Conv2D, BatchNormalization, Activation, Reshape, Flatten, Add, Dropout
-from tensorflow.keras.models import Model
-from tensorflow.keras import activations
-from tensorflow.keras.optimizers import Adam
+#import tensorflow as tf
+#from tensorflow.keras.layers import Input, Dense, Conv2D, BatchNormalization, Activation, Reshape, Flatten, Add, Dropout
+#from tensorflow.keras.models import Model
+#from tensorflow.keras import activations
+#from tensorflow.keras.optimizers import Adam
+import tflite_runtime.interpreter as tflite
 
-import xgboost as xgb
+#import xgboost as xgb
 
-class CustomModel():
-    def getInputTargets(self, examples):
-        """
-        Preprocessing des données pour la compatibilité avec tensorflow
-        """
-        input_boards, target_pis, target_vs = list(zip(*examples))
-        input_boards=np.asarray(input_boards)
-        pi=[]
-        for move in target_pis:
-            if type(list(move.keys())[0])==int:
-                temp = np.zeros(7)
-                for (u,v) in move.items():
-                    temp[u]=v
-            else:
-                temp = np.zeros((9,9))
-                for (u,v) in move.items():     
-                    temp[int(u[0]),int(u[1])]=v
-            pi.append(temp)
-        target_pis = np.asarray(pi)
-        target_vs = np.asarray(target_vs)
-        return input_boards, target_pis, target_vs
+class NeuralNetwork():
+
+    def __init__(self):
+        self.interpreter = None
 
     def predictBatch(self, boards):
         """
@@ -57,95 +41,43 @@ class CustomModel():
             finalv[board]=v[e][0]
         return finalpi, finalv
 
-    @abc.abstractmethod
     def prediction(self, numpyBoards):
-        """
-        Estimation de la politique et de la valeur avec le modèle
-        """
-        return
+        numpyBoards = np.float32(numpyBoards)
+        input_details_pi = self.interpreter_pi.get_input_details()
+        output_details_pi = self.interpreter_pi.get_output_details()
 
-class NeuralNetwork(CustomModel):
+        #input_shape = input_details[0]['shape']
+        self.interpreter_pi.set_tensor(input_details_pi[0]['index'], numpyBoards)
 
-    def residual_block(self, x, filters, kernel_size = 3):
-        y = Conv2D(kernel_size=kernel_size,filters=filters,padding="same")(x)
-        y = BatchNormalization()(y)
-        y = Activation(activations.relu)(y)
-        y = Conv2D(kernel_size=kernel_size,filters=filters,padding="same")(y)
-        y = BatchNormalization()(y)
-        y = Add()([x, y])
-        y = Activation(activations.relu)(y)
-        return y
+        self.interpreter_pi.invoke()
 
-    def __init__(self):
-
-        self.config = {
-            'learning_rate': 0.001,
-            'epochs': 1,
-            'batch_size': 256,
-            'filters': 256,
-            'residualDepth': 10
-        }
-
-        self.inputs = Input(shape=(7,6,2))
-        #self.inputs = Input(shape=(9,9,3))
-
-        x = Conv2D(filters=self.config['filters'],kernel_size=(3,3),padding="same")(self.inputs)
-        #x = Conv2D(filters=self.config['filters'], kernel_size=(3,3), strides=(3,3),padding="valid")(self.inputs)
-        x = BatchNormalization()(x)
-        x = Activation(activations.relu)(x)
-
-        for _ in range(self.config['residualDepth']):
-            x = self.residual_block(x,self.config['filters'],kernel_size=3)
-
-        valueHead = Conv2D(filters=8, kernel_size=(1,1), padding="same")(x)
-        valueHead = BatchNormalization()(valueHead)
-        valueHead = Activation(activations.relu)(valueHead)
-        valueHead = Flatten()(valueHead)
-        valueHeadLastLayer= Dense(256,activation="relu")(valueHead)
-        valueHeadLastLayer = Dropout(0.3)(valueHeadLastLayer)
-        valueHead = Dense(1,activation="tanh", name="v")(valueHeadLastLayer)
-
-        policyHead = Conv2D(filters=32, kernel_size=(1,1), padding="same")(x)
-        policyHead = BatchNormalization()(policyHead)
-        policyHead = Activation(activations.relu)(policyHead)
-        policyHeadLastLayer = Flatten()(policyHead)
-        policyHead = Dropout(0.3)(policyHeadLastLayer)
-        policyHead = Dense(7,activation="softmax",name="pi")(policyHead)
-        #policyHead = Dense(9*9,activation="softmax", kernel_regularizer=regularizers.l2(1e-7))(policyHead)
-        #policyHead = Reshape(target_shape=(9,9),name="pi")(policyHead)
+        pi = self.interpreter_pi.get_tensor(output_details_pi[0]['index'])
 
 
-        
-        self.model = Model(inputs=self.inputs, outputs=[policyHead, valueHead, policyHeadLastLayer, valueHeadLastLayer])
-        self.compile()
-        #self.model.summary()
+        input_details_v = self.interpreter_v.get_input_details()
+        output_details_v = self.interpreter_v.get_output_details()
 
+        #input_shape = input_details[0]['shape']
+        self.interpreter_v.set_tensor(input_details_v[0]['index'], numpyBoards)
 
-    def compile(self):
-        self.model.compile(loss=['categorical_crossentropy','mean_squared_error', None, None], optimizer=Adam(self.config['learning_rate']), loss_weights=[1,1,1,1])
+        self.interpreter_v.invoke()
 
+        v = self.interpreter_v.get_tensor(output_details_v[0]['index'])
 
-    def train(self, examples, warm_start=False):
-        input_boards, target_pis, target_vs = self.getInputTargets(examples)
-        if warm_start:
-            self.model.fit(x = input_boards, y = [target_pis, target_vs, np.zeros(target_vs.shape), np.zeros(target_vs.shape)], batch_size = self.config['batch_size'], epochs = 1)
-        else:
-            self.model.fit(x = input_boards, y = [target_pis, target_vs, np.zeros(target_vs.shape), np.zeros(target_vs.shape)], batch_size = self.config['batch_size'], epochs = self.config['epochs'])
+        return pi,v 
 
-    def prediction(self, numpyBoards):
-        return self.model.predict(numpyBoards)[:2]
+    def load_checkpoint(self, folder, filename_pi, filename_v):
+        filepath = os.path.join(folder, filename_pi)
+        self.interpreter_pi = tflite.Interpreter(model_path=filepath)
+        self.interpreter_pi.allocate_tensors()
 
-    def save_checkpoint(self, folder, filename):
-        filepath = os.path.join(folder, filename)
-        self.model.save(filepath)
-
-    def load_checkpoint(self, folder, filename):
-        filepath = os.path.join(folder, filename)
-        self.model = tf.keras.models.load_model(filepath)
+        filepath = os.path.join(folder, filename_v)
+        self.interpreter_v = tflite.Interpreter(model_path=filepath)
+        self.interpreter_v.allocate_tensors()
 
 
 
-class NeuralXGBoost(CustomModel):
+class NeuralXGBoost():
 
     """
     NeuralXGBoost utilise les sorties intermédiaires du réseau de neurones comme entrées pour les XGBoost

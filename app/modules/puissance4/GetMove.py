@@ -7,7 +7,7 @@ import numpy as np
 def coupajouer(plateau):
     cpuct = 1
     mcts = MCTS(cpuct)
-    for k in range(10):
+    for k in range(100):
         boardToPredict = mcts.selection(plateau)
         if boardToPredict != None:
             pi, v = NN.predictBatch({0 : boardToPredict}) 
@@ -30,17 +30,11 @@ def get_move(actions=[0]):
             game.push(action, player)
             player = (player + 1) %2
 
-        #game.show()
-        #try:
         coup = coupajouer(game)
-        #except Exception as e:
-            #print('[ERROR]: ', e)
-            #coup = 0
     except Exception as e:
         
         del game
 
         raise Exception('Error')
-    del game
 
     return coup

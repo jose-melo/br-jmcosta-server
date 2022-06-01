@@ -2,19 +2,16 @@ import logging
 import config
 import os
 
-#from .modules.puissance4.GetMove import get_move
+from .modules.puissance4.GetMove import get_move
 
 logging.basicConfig(level=config.LOGLEVEL)
 logger = logging.getLogger(__name__)
 
 
 def process_connect_four(payload: dict) -> dict:
-    logging.info('payload: ', payload)
+    logging.info('payload: '+str(payload))
 
-    #move = get_move(payload['actions']) 
+    move = get_move(payload['actions']) 
 
-    #print('move: ', move)
-    logging.info('test: '+os.getcwd())
-    logging.info('dir: '+str(os.listdir()))
-    logging.info(os.stat('assets/data/daily_donkey/save48.h5'))
-    return {"move": 0}
+    logging.info('move: '+str(move))
+    return {"move": move}
