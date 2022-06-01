@@ -156,7 +156,8 @@ class NeuralXGBoost(CustomModel):
         self.use_pi = use_pi
         self.use_v = use_v
         self.NN = NeuralNetwork()
-        self.NN.load_checkpoint(folder='/back_end/app/assets/data', filename='daily_donkey/save48.h5')
+
+        self.NN.load_checkpoint(folder='assets/data', filename='daily_donkey/save48.h5')
         if self.use_pi:
             self.xgb_pi = xgb.XGBClassifier(use_label_encoder=False, colsample_bytree = 0.5, n_estimators = 100)
         if self.use_v:
