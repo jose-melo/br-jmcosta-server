@@ -1,0 +1,12 @@
+version: 1.0
+runtime: python3 
+build:
+  commands:
+    build:        
+      - pip3 install -r requirements.txt
+run:
+  runtime-version: 3.6.13
+  command: gunicorn --log-level INFO -b :8296 -t 120 run:APP
+  network: 
+    port: 8296
+    env: MY_APP_PORT  
